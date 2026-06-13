@@ -8,6 +8,9 @@ from typing import Optional
 class ValidationContext:
     payload: dict
     exam_date: Optional[date] = None
+    scheduled_date: Optional[date] = None
+    rule: Optional[object] = None
+    failed_score: Optional[int] = None
     errors: list = field(default_factory=list)
 
 

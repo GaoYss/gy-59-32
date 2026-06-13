@@ -10,6 +10,7 @@ class Rule(db.Model):
     subject = db.Column(db.String(20), unique=True, nullable=False)
     min_interval_days = db.Column(db.Integer, nullable=False, default=7)
     max_daily_slots = db.Column(db.Integer, nullable=False, default=20)
+    max_slots_per_timeslot = db.Column(db.Integer, nullable=False, default=5)
     allow_weekend = db.Column(db.Boolean, nullable=False, default=False)
     passing_score = db.Column(db.Integer, nullable=False, default=90)
     makeup_wait_days = db.Column(db.Integer, nullable=False, default=10)
@@ -21,6 +22,7 @@ class Rule(db.Model):
             "subject": self.subject,
             "minIntervalDays": self.min_interval_days,
             "maxDailySlots": self.max_daily_slots,
+            "maxSlotsPerTimeslot": self.max_slots_per_timeslot,
             "allowWeekend": self.allow_weekend,
             "passingScore": self.passing_score,
             "makeupWaitDays": self.makeup_wait_days,

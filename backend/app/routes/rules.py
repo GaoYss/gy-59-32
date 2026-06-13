@@ -20,6 +20,7 @@ def update_rule(rule_id):
     int_fields = {
         "minIntervalDays": "min_interval_days",
         "maxDailySlots": "max_daily_slots",
+        "maxSlotsPerTimeslot": "max_slots_per_timeslot",
         "passingScore": "passing_score",
         "makeupWaitDays": "makeup_wait_days",
     }

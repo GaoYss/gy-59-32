@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta
 
 from .base import BaseValidator, ValidationContext
+from ..constants import TIME_SLOTS
 from ..extensions import db
 from ..models import Appointment, Rule
 
@@ -18,6 +19,14 @@ class RequiredFieldsValidator(BaseValidator):
         missing = [field for field in required if not context.payload.get(field)]
         if missing:
             return f"缺少字段：{', '.join(missing)}"
+        return None
+
+
+class TimeslotFormatValidator(BaseValidator):
+    def do_validate(self, context: ValidationContext) -> str | None:
+        timeslot = context.payload.get("timeslot")
+        if timeslot not in TIME_SLOTS:
+            return f"无效的考试时段，可选：{', '.join(TIME_SLOTS)}"
         return None
 
 
@@ -65,6 +74,19 @@ class DailySlotsValidator(BaseValidator):
         return None
 
 
+class TimeslotSlotsValidator(BaseValidator):
+    def do_validate(self, context: ValidationContext) -> str | None:
+        timeslot_count = Appointment.query.filter(
+            Appointment.subject == context.payload["subject"],
+            Appointment.exam_date == context.exam_date,
+            Appointment.timeslot == context.payload["timeslot"],
+            Appointment.status.in_(["已预约", "已确认"]),
+        ).count()
+        if timeslot_count >= context.rule.max_slots_per_timeslot:
+            return "该时段预约名额已满"
+        return None
+
+
 class MinIntervalValidator(BaseValidator):
     def do_validate(self, context: ValidationContext) -> str | None:
         earliest_date = date.today() + timedelta(days=context.rule.min_interval_days)
@@ -87,20 +109,24 @@ class DuplicateAppointmentValidator(BaseValidator):
 
 def build_validation_chain():
     required = RequiredFieldsValidator()
+    timeslot_format = TimeslotFormatValidator()
     date_format = DateFormatValidator()
     past_date = PastDateValidator()
     subject_enabled = SubjectEnabledValidator()
     weekend = WeekendRestrictionValidator()
     daily_slots = DailySlotsValidator()
+    timeslot_slots = TimeslotSlotsValidator()
     min_interval = MinIntervalValidator()
     duplicate = DuplicateAppointmentValidator()
 
-    required.set_next(date_format)
+    required.set_next(timeslot_format)
+    timeslot_format.set_next(date_format)
     date_format.set_next(past_date)
     past_date.set_next(subject_enabled)
     subject_enabled.set_next(weekend)
     weekend.set_next(daily_slots)
-    daily_slots.set_next(min_interval)
+    daily_slots.set_next(timeslot_slots)
+    timeslot_slots.set_next(min_interval)
     min_interval.set_next(duplicate)
 
     return required

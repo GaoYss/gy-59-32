@@ -7,10 +7,10 @@ from .models import Appointment, ExamQuestion, Makeup, Rule
 def seed_data():
     if not Rule.query.first():
         rules = [
-            Rule(subject="科目一", min_interval_days=3, max_daily_slots=30, passing_score=90),
-            Rule(subject="科目二", min_interval_days=7, max_daily_slots=18, passing_score=80),
-            Rule(subject="科目三", min_interval_days=10, max_daily_slots=15, passing_score=90),
-            Rule(subject="科目四", min_interval_days=3, max_daily_slots=30, passing_score=90),
+            Rule(subject="科目一", min_interval_days=3, max_daily_slots=30, max_slots_per_timeslot=8, passing_score=90),
+            Rule(subject="科目二", min_interval_days=7, max_daily_slots=18, max_slots_per_timeslot=5, passing_score=80),
+            Rule(subject="科目三", min_interval_days=10, max_daily_slots=15, max_slots_per_timeslot=4, passing_score=90),
+            Rule(subject="科目四", min_interval_days=3, max_daily_slots=30, max_slots_per_timeslot=8, passing_score=90),
         ]
         db.session.add_all(rules)
 

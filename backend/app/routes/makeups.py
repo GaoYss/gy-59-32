@@ -1,20 +1,10 @@
-from datetime import datetime
-
 from flask import Blueprint, jsonify, request
 
 from ..extensions import db
 from ..models import Makeup
+from ..validators import validate_create_makeup, validate_update_makeup
 
 makeups_bp = Blueprint("makeups", __name__, url_prefix="/api/makeups")
-
-
-def parse_date(value):
-    if not value:
-        return None
-    try:
-        return datetime.strptime(value, "%Y-%m-%d").date()
-    except ValueError:
-        return "invalid"
 
 
 @makeups_bp.get("")
@@ -29,19 +19,18 @@ def list_makeups():
 @makeups_bp.post("")
 def create_makeup():
     payload = request.get_json() or {}
-    required = ["studentName", "originalSubject", "failedScore"]
-    missing = [field for field in required if payload.get(field) in (None, "")]
-    if missing:
-        return jsonify({"message": f"缺少字段：{', '.join(missing)}"}), 400
+    error, context = validate_create_makeup(payload)
+    if error:
+        return jsonify({"message": error}), 400
 
-    scheduled_date = parse_date(payload.get("scheduledDate"))
-    if scheduled_date == "invalid":
-        return jsonify({"message": "补考日期格式应为 YYYY-MM-DD"}), 400
+    scheduled_date = context.scheduled_date
+    if "scheduledDate" not in payload:
+        scheduled_date = None
 
     makeup = Makeup(
         student_name=payload["studentName"].strip(),
         original_subject=payload["originalSubject"],
-        failed_score=int(payload["failedScore"]),
+        failed_score=context.failed_score,
         scheduled_date=scheduled_date,
         status=payload.get("status", "待安排"),
         notes=payload.get("notes"),
@@ -56,14 +45,13 @@ def update_makeup(makeup_id):
     makeup = Makeup.query.get_or_404(makeup_id)
     payload = request.get_json() or {}
 
+    error, context = validate_update_makeup(payload)
+    if error:
+        return jsonify({"message": error}), 400
+
     if "scheduledDate" in payload:
-        scheduled_date = parse_date(payload.get("scheduledDate"))
-        if scheduled_date == "invalid":
-            return jsonify({"message": "补考日期格式应为 YYYY-MM-DD"}), 400
-        makeup.scheduled_date = scheduled_date
+        makeup.scheduled_date = context.scheduled_date
     if "status" in payload:
-        if payload["status"] not in ["待安排", "已安排", "已通过", "已取消"]:
-            return jsonify({"message": "无效补考状态"}), 400
         makeup.status = payload["status"]
     if "notes" in payload:
         makeup.notes = payload["notes"]
